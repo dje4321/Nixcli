@@ -67,7 +67,7 @@ def patch():
     def find_in_store(lib):
         lib = lib.strip(" ").strip('\t')
         debugOutput("find_in_store():lib",lib)
-        cmd = "find /nix/store/ . /run/current-system/sw/lib -executable -name '{}'".format(lib)
+        cmd = "find /nix/store/ . /run/current-system/sw/lib -name '{}'".format(lib)
         output = subprocess.getoutput(cmd).splitlines()
 
         if output == []:
@@ -119,6 +119,7 @@ def patch():
         sys.exit(1)
 
     libraries = subprocess.getoutput("ldd {}".format(binary)).splitlines()
+    debugOutput("patch():libraries",libraries)
 
     lib_paths = []
     missingLib = []
