@@ -131,11 +131,11 @@ argv[0]
 help = """{}
 
 Avalible Commands
-    install         Installs a program
-    uninstall       Removes a program
-    search          Searchs for a program
-    update          Updates a package
-    patch           Patches a prebuilt binary to run on nixos
+    install             Installs a program
+    uninstall           Removes a program
+    search              Searchs for a program
+    update              Updates a package
+    patch               Patches a prebuilt binary to run on nixos
 
 Patch Options
     -gc [true/false]    Whether to collect garbage or not
