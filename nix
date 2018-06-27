@@ -131,6 +131,7 @@ argv[0]
 help = """{}
 
 Avalible Commands
+    help                Displays this help message
     install             Installs a program
     uninstall           Removes a program
     search              Searchs for a program
@@ -141,7 +142,7 @@ Patch Options
     -gc [true/false]    Whether to collect garbage or not
 """.format(argv[0])
 
-if len(argv) <= 1:
+if len(argv) <= 1 or checkArgv("help") == True:
     print(help)
 else:
     main()
