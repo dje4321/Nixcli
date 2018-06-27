@@ -72,6 +72,7 @@ def patch():
         path = path.splitlines()
         for lib in path:
             if lib != '':
+                debugOutput("DEBUG:getPath():",os.path.dirname(lib))
                 return os.path.dirname(lib)
         return None
 
@@ -82,9 +83,11 @@ def patch():
     libraries = subprocess.getoutput("ldd {}".format(binary)) # Get all of the libraries a executable needs
     libraries = libraries.replace('\t','').splitlines() # Do some formatting
 
+    print("Finding libraries")
+
     for lib in libraries: # Run over every found library
         lib = lib.split(" ")[0] # Get the library name
-        if lib.find("linux-vdso") != -1: # Check if we
+        if lib.find("linux-vdso") != -1: # Check if we are on linux-vdso and if so ignore it as we dont need to mess with it
             continue
         if lib.find("ld-linux") != -1: # See if we are on the interpreter
             interpreter_start = lib.find("ld")
@@ -93,6 +96,14 @@ def patch():
         else:
             libPath = findLibrary(lib) # Run through the list of folders and fix the libraries
             libPath = getPath(libPath) # Get the path of found libraries
+            if libPath == None:
+                print("Missing:{}".format(lib))
+                print("")
+            else:
+                print("Found:{}".format(lib))
+                print("Path:{}".format(libPath))
+                print("")
+
             libPaths.append(libPath) # Add the path to the list of known paths
 
     libPaths = list(set(libPaths)) # Dedup the list
@@ -108,9 +119,6 @@ def patch():
     debugOutput("patch():rpath",rpath)
     print("Patching rpath")
     os.system("patchelf --set-rpath {} {}".format(rpath, binary))
-
-    #print("DEBUG:libPaths:{}".format(repr(libPaths)))
-    #print("DEBUG:interpreter:{}".format(repr(interpreter)))
 
 def checkGarbage():
     if checkArgv("-gc") == True:
@@ -158,5 +166,6 @@ Patch Options
 
 if len(argv) <= 1 or checkArgv("help") == True:
     print(help)
+    sys.exit(-127)
 else:
     main()
