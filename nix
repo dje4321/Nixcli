@@ -57,7 +57,8 @@ def update():
 def patch():
     binary = argv[-1]
     def find_in_store(lib):
-        cmd = "find /nix/store/ | grep {}".format(lib)
+        lib = lib.strip(" ").strip('\t')
+        cmd = "find /nix/store/ -executable -name '{}'".format(lib)
         return subprocess.getoutput(cmd).splitlines()[0]
 
     def checkGarbage():
@@ -94,7 +95,7 @@ def patch():
     else:
         checkGarbage()
 
-    print("Find libraries. This might take a while")
+    print("Finding libraries. This might take a while")
     binary = argv[-1]
 
     if os.path.isfile(binary) != True:
@@ -103,20 +104,23 @@ def patch():
 
     libraries = subprocess.getoutput("ldd {}".format(binary)).splitlines()
 
-    lib_paths = [".", "/run/current-system/sw/lib"]
+    lib_paths = []
 
     for lib in libraries:
-        lib = lib.strip('\t')
-        if lib.find("ld-linux") != -1:
+        if lib.find("ld-linux") != -1: # See if we are on the interpreter
             libdep = lib.split(' ')[0]
             interpreter_start = libdep.find("ld")
             interpreter_path = find_in_store(libdep[interpreter_start:])
-        if lib.find("not") != -1:
+        if lib.find("not") != -1: #check for missing libraries
             libdep = libraries[1].split(' ')[0]
             lib_path = find_in_store(libdep)
             lib_paths.append(os.path.dirname(lib_path))
 
-    rpath = ':'.join(lib_paths)
+    lib_paths = list(set(lib_paths)) # Remove duplicates from the found paths
+    lib_paths.insert(0,"/run/current-system/sw/lib") # Add default paths to rpath
+    lib_paths.insert(0,".")
+
+    rpath = ':'.join(lib_paths) # Create rpath from found paths
 
     print("Patching interpreter")
     os.system("patchelf --set-interpreter {} {}".format(interpreter_path, binary))
