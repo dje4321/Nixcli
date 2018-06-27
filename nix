@@ -2,6 +2,12 @@
 import os, subprocess, sys
 argv = sys.argv
 
+def debugOutput(loc,var):
+    if checkArgv("--trace") == True:
+        print("")
+        print("DEBUG:{}".format(loc))
+        print("VARIABLE:{}".format(repr(var)))
+
 def checkArgv(condidtion):
     for arg in argv:
         if arg == condidtion:
@@ -10,6 +16,7 @@ def checkArgv(condidtion):
 
 
 def returnOption(condidtion):
+    debugOutput("returnOption():condidtion",condidtion)
     for count, arg in enumerate(argv):
         if arg == condidtion:
             return argv[count + 1]
@@ -56,10 +63,20 @@ def update():
 
 def patch():
     binary = argv[-1]
+    debugOutput("patch():binary",binary)
     def find_in_store(lib):
         lib = lib.strip(" ").strip('\t')
-        cmd = "find /nix/store/ -executable -name '{}'".format(lib)
-        return subprocess.getoutput(cmd).splitlines()[0]
+        debugOutput("find_in_store():lib",lib)
+        cmd = "find /nix/store/ . /run/current-system/sw/lib -executable -name '{}'".format(lib)
+        output = subprocess.getoutput(cmd).splitlines()
+
+        if output == []:
+            return "None"
+        else:
+            output = output[0]
+
+        debugOutput("find_in_store():output",output)
+        return output
 
     def checkGarbage():
         loop = True
@@ -96,7 +113,6 @@ def patch():
         checkGarbage()
 
     print("Finding libraries. This might take a while")
-    binary = argv[-1]
 
     if os.path.isfile(binary) != True:
         print("Please specify a valid file")
@@ -105,27 +121,45 @@ def patch():
     libraries = subprocess.getoutput("ldd {}".format(binary)).splitlines()
 
     lib_paths = []
+    missingLib = []
 
     for lib in libraries:
         if lib.find("ld-linux") != -1: # See if we are on the interpreter
             libdep = lib.split(' ')[0]
             interpreter_start = libdep.find("ld")
             interpreter_path = find_in_store(libdep[interpreter_start:])
+            if interpreter_path == "None":
+                print("Could not find the interpreter {}".format(libdep))
+                sys.exit(1)
         if lib.find("not") != -1: #check for missing libraries
             libdep = libraries[1].split(' ')[0]
             lib_path = find_in_store(libdep)
-            lib_paths.append(os.path.dirname(lib_path))
+
+            if lib_path == "None": # Check if a library was missing
+                missingLib.append(libdep)
+            elif lib_path != '': # Dont append a empty path
+                lib_paths.append(os.path.dirname(lib_path))
 
     lib_paths = list(set(lib_paths)) # Remove duplicates from the found paths
     lib_paths.insert(0,"/run/current-system/sw/lib") # Add default paths to rpath
     lib_paths.insert(0,".")
+    debugOutput("patch():lib_paths",lib_paths)
 
-    rpath = ':'.join(lib_paths) # Create rpath from found paths
+    rpath = ':'.join(lib_paths) # Create rpathbinary from found paths
 
+    debugOutput("patch():interpreter_path",interpreter_path)
     print("Patching interpreter")
     os.system("patchelf --set-interpreter {} {}".format(interpreter_path, binary))
+
+    debugOutput("patch():rpath",rpath)
     print("Patching rpath")
     os.system("patchelf --set-rpath {} {}".format(rpath, binary))
+
+    if len(missingLib) > 0:
+        missingLib = list(set(missingLib)) # Dedup the list
+        print("The following libraries were missing")
+        for noLib in missingLib:
+            print(noLib)
 
 ################################################################################
 """
@@ -139,7 +173,7 @@ Avalible Commands
     install             Installs a program
     uninstall           Removes a program
     search              Searchs for a program
-    update              Updates a package
+    update              Updates a packagereter_pareter_pathth
     patch               Patches a prebuilt binary to run on nixos
 
 Patch Options
