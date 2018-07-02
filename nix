@@ -29,7 +29,7 @@ def main():
         uninstall()
     elif argv[-2] == "search":
         search()
-    elif argv[-2] == "update":
+    elif argv[-2] == "update" or argv[-1] == "update":
         update()
     elif argv[-1] == "upgrade":
         upgrade()
@@ -66,11 +66,19 @@ def update():
         os.system("nix-env -u {}".format(argv[-1]))
 
 def upgrade():
+    option = ""
+
     if os.getuid() != 0:
         print("Missing root permissions")
         sys.exit(1)
+
     os.system("nix-channel --update")
-    os.system("nixos-rebuild switch")
+
+    if checkArgv("-op") == True:
+        option = returnOption("-op")
+
+    print(option)
+    os.system("nixos-rebuild switch {}".format(option))
 
 def patch():
 
@@ -170,6 +178,10 @@ Avalible Commands
     update              Updates a package
     upgrade             Upgrades the system
     patch               Patches a prebuilt binary to run on nixos
+
+Upgrade Options
+    -op                 Pass arguments to nixos-rebuild
+                        ./nixcli -op "--cores 8" upgrade
 
 Patch Options
     -gc [true/false]    Whether to collect garbage or not
