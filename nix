@@ -31,36 +31,46 @@ def main():
         search()
     elif argv[-2] == "update":
         update()
+    elif argv[-1] == "upgrade":
+        upgrade()
     elif argv[-2] == "patch":
         patch()
 
 def install():
     if len(argv) <= 2:
         print("{} install PROGRAM".format(argv[0]))
-        sys.exit()
+        sys.exit(1)
     else:
         os.system("nix-env -i {}".format(argv[-1]))
 
 def uninstall():
     if len(argv) <= 2:
         print("{} uninstall PROGRAM".format(argv[0]))
-        sys.exit()
+        sys.exit(1)
     else:
         os.system("nix-env -e {}".format(argv[-1]))
 
 def search():
     if len(argv) <= 2:
         print("{} patch PROGRAM".format(argv[0]))
-        sys.exit()
+        sys.exit(1)
     else:
         os.system("nix-env -qa --description | grep --color=auto {}".format(argv[-1]))
 
 def update():
+    os.system("nix-channel --update")
     if len(argv) <= 2:
         if input("Do you wish to update everything? [Y/n]:").lower() != "n":
             os.system('nix-env -u "*"')
     else:
         os.system("nix-env -u {}".format(argv[-1]))
+
+def upgrade():
+    if os.getuid() != 0:
+        print("Missing root permissions")
+        sys.exit(1)
+    os.system("nix-channel --update")
+    os.system("nixos-rebuild switch")
 
 def patch():
 
@@ -157,7 +167,8 @@ Avalible Commands
     install             Installs a program
     uninstall           Removes a program
     search              Searchs for a program
-    update              Updates a packagereter_pareter_pathth
+    update              Updates a package
+    upgrade             Upgrades the system
     patch               Patches a prebuilt binary to run on nixos
 
 Patch Options
